@@ -1,0 +1,174 @@
+﻿
+@{
+    ViewBag.Title = "Banka";
+}
+
+@model List<Kasabanka.Models.Bank>
+
+<style>
+    /* Ensure all columns are left-aligned */
+    #bankTable th,
+    #bankTable td {
+        text-align: left;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="mb-0">Bankalar</h2>
+    <button class="btn btn-primary" type="button" title="Yeni banka eklemek için tıklayınız." onclick="OpenAddBankModal()">Yeni Banka Oluştur</button>
+</div>
+
+<table id="bankTable" class="table table-striped table-bordered display">
+    <thead>
+        <tr>
+            <th>Banka Kodu</th>
+            <th>Banka Adı</th>
+            <th>TL (₺)</th>
+            <th>USD ($)</th>
+            <th>EUR (€)</th>
+            <th>GBP (£)</th>
+        </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+
+<div id="addBankModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Yeni Banka Oluştur</h4>
+            </div>
+            <form id="addBankForm">
+                <div class="modal-body">
+                    <label>Banka Kodu</label>
+                    <input class="form-control mb-2" name="bankCodeInput" id="bankCodeInput" placeholder="Banka kodunu giriniz" required />
+                    <label>Banka Adı</label>
+                    <input class="form-control mb-2" id="bankNameInput" placeholder="Banka adını giriniz" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-default" onclick="CloseAddModal()">Vazgeç</button>
+                </div>
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+@section scripts {
+    <script>
+        var table;
+
+        $(function () {
+            InitializeTable();
+        });
+
+        function InitializeTable() {
+            table = new DataTable('#bankTable', {
+                ajax: {
+                    url: '/Bank/GetBanks',
+                },
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/tr.json',
+                },
+
+                columns: [
+                    { data: 'Code' },
+                    { data: 'Name' },
+                    {
+                        data: null,
+                        render: function (data, type, row) { return "0.00 ₺"; }
+                    },
+                    {
+                        data: null,
+                        render: function (data, type, row) { return "0.00 €"; }
+                    },
+                    {
+                        data: null,
+                        render: function (data, type, row) { return "0.00 $"; }
+                    },
+                    {
+                        data: null,
+                        render: function (data, type, row) { return "0.00 £"; }
+                    },
+                    {
+                        data: null,
+                        render: function (data, type, row) {
+                            var deletebutton = `<button type="button" title="Bankayı silmek için tıkla." onclick="DeleteBank(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
+                            var updatebutton = `<button type="button" title="Bankayı düzenlemek için tıkla." onclick="UpdateBank(${row.Id})" class="m-1 btn btn-sm btn-info">Düzenle</button>`;
+                            return updatebutton + deletebutton;
+                        }
+                    },
+                ]
+            });
+        }
+
+
+        function DeleteBank(id) {
+            alert(id);
+        }
+
+        function UpdateBank(id) {
+            alert(id);
+        }
+
+        function OpenAddBankModal() {
+            $("#bankNameInput").val("");
+            $("#bankCodeInput").val("");
+            $("#addBankModal").modal("show");
+        }
+
+        function CloseAddModal() {
+            $("#addBankModal").modal("hide");
+        }
+
+        $("#addBankForm").on("submit", function (event) {
+            event.preventDefault();
+            SaveNewBank();
+        });
+
+        function SaveNewBank() {
+            var object = {
+                Name: $("#bankNameInput").val(),
+                Code: $("#bankCodeInput").val(),
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "/Bank/CreateBank",
+                data: { bank: object },
+                success: function (data) {
+                    CloseAddModal();
+                    if (data.Success) {
+                        Swal.fire({
+                            title: "Başarılı!",
+                            text: data.Message,
+                            icon: "success"
+                        }).then((result) => {
+                            table.ajax.reload();
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Uyarı!",
+                            text: data.Message,
+                            icon: "warning"
+                        });
+                    }
+                },
+                error: function () {
+                    CloseAddModal();
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+    </script>
+}
