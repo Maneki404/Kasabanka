@@ -1,33 +1,39 @@
 ﻿@{
-    ViewBag.Title = "Home Page";
+    ViewBag.Title = "Ana Sayfa";
 }
 
-<main>
-    <section class="row" aria-labelledby="aspnetTitle">
-        <h1 id="title">ASP.NET</h1>
-        <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-        <p><a href="https://asp.net" class="btn btn-primary btn-md">Learn more &raquo;</a></p>
+<main class=" d-flex flex-column flex-grow-1">
+    <section class="row mt-5" aria-labelledby="projectTitle">
+        <h1 id="projectTitle">KasaBanka'ya' Hoşgeldiniz</h1>
+        <p class="lead mt-3">
+            Bu proje, çeşitli finansal varlıkları yönetmek ve düzenlemek için kullanılan bir web uygulamasıdır. Kullanıcılar, kasalar, bankalar ve hesaplar gibi öğeleri ekleyebilir, güncelleyebilir, silebilir ve görüntüleyebilir. Ayrıca, döviz ve işlemler gibi verileri de yönetebilirsiniz.
+        </p>
+        <h6 class="mb-5 mt-2">
+            Bu proje ile ilgili daha fazla bilgi edinmek için aşağıdaki bölümlere göz atabilirsiniz.
+        </h6>
     </section>
 
-    <div class="row">
-        <section class="col-md-4" aria-labelledby="gettingStartedTitle">
-            <h2 id="gettingStartedTitle">Getting started</h2>
+    <div class="row gap-4">
+        <section class="col" aria-labelledby="safeManagementTitle">
+            <h2 id="safeManagementTitle">Kasa Yönetimi</h2>
             <p>
-                ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-                enables a clean separation of concerns and gives you full control over markup
-                for enjoyable, agile development.
+                Kasa ekleyebilir, güncelleyebilir ve silebilirsiniz. Kasalar, TL, USD, EUR ve GBP gibi farklı para birimlerini barındırabilir.
             </p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
+            <p><a class="btn btn-outline-dark" href="/Safe" title="Kasa Yönetimine Git">Kasaları Yönet &raquo;</a></p>
         </section>
-        <section class="col-md-4" aria-labelledby="librariesTitle">
-            <h2 id="librariesTitle">Get more libraries</h2>
-            <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
+        <section class="col" aria-labelledby="bankManagementTitle">
+            <h2 id="bankManagementTitle">Banka Yönetimi</h2>
+            <p>
+                Bankaları ve onlara ait detayları yönetebilirsiniz. Banka hesapları, bakiyeler ve daha fazlasını kontrol edebilirsiniz.
+            </p>
+            <p><a class="btn btn-outline-dark" href="/Bank" title="Banka Yönetimine Git">Bankaları Yönet &raquo;</a></p>
         </section>
-        <section class="col-md-4" aria-labelledby="hostingTitle">
-            <h2 id="hostingTitle">Web Hosting</h2>
-            <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
+        <section class="col" aria-labelledby="transactionManagementTitle">
+            <h2 id="transactionManagementTitle">İşlem Yönetimi</h2>
+            <p>
+                Detaylı finansal işlemleri takip edebilirsiniz.
+            </p>
+            <p><a class="btn btn-outline-dark" href="/Transactions" title="İşlemlere Git">İşlemleri Listele &raquo;</a></p>
         </section>
     </div>
 </main>

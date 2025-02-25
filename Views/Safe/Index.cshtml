@@ -1,5 +1,4 @@
-﻿
-@{
+﻿@{
     ViewBag.Title = "Kasa";
 }
 
@@ -27,6 +26,7 @@
             <th>USD ($)</th>
             <th>EUR (€)</th>
             <th>GBP (£)</th>
+            <th>İşlemler</th>
         </tr>
     </thead>
     <tbody>
@@ -52,9 +52,49 @@
                     <button type="button" class="btn btn-default" onclick="CloseAddModal()">Vazgeç</button>
                 </div>
             </form>
-
         </div>
+    </div>
+</div>
 
+<div id="updateSafeModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Kasa Güncelleme</h4>
+            </div>
+            <form id="updateSafeForm">
+                <div class="modal-body">
+                    <input type="hidden" id="safeIdUpdateInput" />
+                    <label>Kasa Kodu</label>
+                    <input class="form-control mb-2" name="safeCodeUpdateInput" id="safeCodeUpdateInput" placeholder="Kasa kodunu giriniz" required />
+                    <label>Kasa Adı</label>
+                    <input class="form-control mb-2" id="safeNameUpdateInput" placeholder="Kasa adını giriniz" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-default" onclick="CloseUpdateModal()">Vazgeç</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div id="deleteSafeModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Kasa Silinecektir Onaylıyor Musunuz?</h4>
+            </div>
+            <form id="deleteSafeForm">
+                <div class="modal-body">
+                    <input type="hidden" id="safeIdDeleteInput" />
+                    <button type="submit" class="btn btn-danger">Evet</button>
+                    <button type="button" class="btn btn-outline-dark" onclick="CloseDeleteModal()">Hayır</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -74,45 +114,35 @@
                 language: {
                     url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/tr.json',
                 },
-
                 columns: [
                     { data: 'Code' },
                     { data: 'Name' },
                     {
                         data: null,
-                        render: function (data, type, row) { return "0.00 ₺"; }
+                        render: function () { return "0.00 ₺"; }
                     },
                     {
                         data: null,
-                        render: function (data, type, row) { return "0.00 €"; }
+                        render: function () { return "0.00 €"; }
                     },
                     {
                         data: null,
-                        render: function (data, type, row) { return "0.00 $"; }
+                        render: function () { return "0.00 $"; }
                     },
                     {
                         data: null,
-                        render: function (data, type, row) { return "0.00 £"; }
+                        render: function () { return "0.00 £"; }
                     },
                     {
                         data: null,
                         render: function (data, type, row) {
-                            var deletebutton = `<button type="button" title="Kasayı silmek için tıkla." onclick="DeleteSafe(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
-                            var updatebutton = `<button type="button" title="Kasayı düzenlemek için tıkla." onclick="UpdateSafe(${row.Id})" class="m-1 btn btn-sm btn-info">Düzenle</button>`;
-                            return updatebutton + deletebutton;
+                            var deleteButton = `<button type="button" title="Kasayı silmek için tıkla." onclick="OpenDeleteSafeModal(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
+                            var updateButton = `<button type="button" title="Kasayı düzenlemek için tıkla." onclick="OpenUpdateSafeModal(${row.Id})" class="m-1 btn btn-sm btn-info">Düzenle</button>`;
+                            return updateButton + deleteButton;
                         }
                     },
                 ]
             });
-        }
-
-
-        function DeleteSafe(id) {
-            alert(id);
-        }
-
-        function UpdateSafe(id) {
-            alert(id);
         }
 
         function OpenAddSafeModal() {
@@ -139,7 +169,7 @@
             $.ajax({
                 type: "POST",
                 url: "/Safe/CreateSafe",
-                data: { safe: object },
+                data: object,
                 success: function (data) {
                     CloseAddModal();
                     if (data.Success) {
@@ -147,7 +177,7 @@
                             title: "Başarılı!",
                             text: data.Message,
                             icon: "success"
-                        }).then((result) => {
+                        }).then(() => {
                             table.ajax.reload();
                         });
                     }
@@ -170,11 +200,154 @@
             });
         }
 
+        function OpenUpdateSafeModal(id) {
+            $.ajax({
+                type: "GET",
+                url: "/Safe/GetSafeById",
+                data: { id: id },
+                success: function (data) {
+                    if (data) {
+                        $("#safeIdUpdateInput").val(data.Id);
+                        $("#safeNameUpdateInput").val(data.Name);
+                        $("#safeCodeUpdateInput").val(data.Code);
+                        $("#updateSafeModal").modal("show");
+                    } else {
+                        Swal.fire({
+                            title: "Hata!",
+                            text: "Kasa bilgisi alınamadı.",
+                            icon: "error"
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+        function CloseUpdateModal() {
+            $("#updateSafeModal").modal("hide");
+        }
+
+        $("#updateSafeForm").on("submit", function (event) {
+            event.preventDefault();
+            UpdateSafe();
+        });
+
+        function UpdateSafe() {
+            var object = {
+                Id: $("#safeIdUpdateInput").val(),
+                Name: $("#safeNameUpdateInput").val(),
+                Code: $("#safeCodeUpdateInput").val(),
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "/Safe/UpdateSafe",
+                data: object,
+                success: function (data) {
+                    CloseUpdateModal();
+                    if (data.Success) {
+                        Swal.fire({
+                            title: "Başarılı!",
+                            text: data.Message,
+                            icon: "success"
+                        }).then(() => {
+                            table.ajax.reload();
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Uyarı!",
+                            text: data.Message,
+                            icon: "warning"
+                        });
+                    }
+                },
+                error: function () {
+                    CloseUpdateModal();
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+        function OpenDeleteSafeModal(id) {
+            $.ajax({
+                type: "GET",
+                url: "/Safe/GetSafeById",
+                data: { id: id },
+                success: function (data) {
+                    if (data) {
+                        $("#safeIdDeleteInput").val(data.Id);
+                        $("#deleteSafeModal").modal("show");
+                    } else {
+                        Swal.fire({
+                            title: "Hata!",
+                            text: "Kasa bilgisi alınamadı.",
+                            icon: "error"
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+        function CloseDeleteModal() {
+            $("#deleteSafeModal").modal("hide");
+        }
+
+        $("#deleteSafeForm").on("submit", function (event) {
+            event.preventDefault();
+            DeleteSafe($("#safeIdDeleteInput").val());
+        });
+
+        function DeleteSafe(id) {
+            $.ajax({
+                type: "POST",
+                url: "/Safe/DeleteSafe",
+                data: { id: id },
+                success: function (data) {
+                    CloseDeleteModal();
+                    if (data.Success) {
+                        Swal.fire({
+                            title: "Başarılı!",
+                            text: data.Message,
+                            icon: "success"
+                        }).then(() => {
+                            table.ajax.reload();
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Uyarı!",
+                            text: data.Message,
+                            icon: "warning"
+                        });
+                    }
+                },
+                error: function () {
+                    CloseDeleteModal();
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
     </script>
 }
-
-
-
-
-
-

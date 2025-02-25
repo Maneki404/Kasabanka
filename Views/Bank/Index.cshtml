@@ -3,7 +3,7 @@
     ViewBag.Title = "Banka";
 }
 
-@model List<Kasabanka.Models.Bank>
+@model List<Kasabanka.Models.BankItem>
 
 <style>
     /* Ensure all columns are left-aligned */
@@ -58,6 +58,52 @@
     </div>
 </div>
 
+<div id="updateBankModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Banka Güncelleme</h4>
+            </div>
+            <form id="updateBankForm">
+                <div class="modal-body">
+                    <input type="hidden" id="bankIdUpdateInput" />
+                    <label>Banka Kodu</label>
+                    <input class="form-control mb-2" name="bankCodeUpdateInput" id="bankCodeUpdateInput" placeholder="Banka kodunu giriniz" required />
+                    <label>Banka Adı</label>
+                    <input class="form-control mb-2" id="bankNameUpdateInput" placeholder="Banka adını giriniz" required />
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="button" class="btn btn-default" onclick="CloseUpdateModal()">Vazgeç</button>
+                </div>
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+<div id="deleteBankModal" class="modal fade" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Banka Silinecektir Onaylıyor Musunuz?</h4>
+            </div>
+            <form id="deleteBankForm">
+                <div class="modal-body">
+                    <input type="hidden" id="bankIdDeleteInput" />
+                    <button type="submit" class="btn btn-danger">Evet</button>
+                    <button type="button" class="btn btn-outline-dark" onclick="CloseDeleteModal()">Hayır</button>
+                </div>
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
 @section scripts {
     <script>
         var table;
@@ -97,22 +143,13 @@
                     {
                         data: null,
                         render: function (data, type, row) {
-                            var deletebutton = `<button type="button" title="Bankayı silmek için tıkla." onclick="DeleteBank(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
-                            var updatebutton = `<button type="button" title="Bankayı düzenlemek için tıkla." onclick="UpdateBank(${row.Id})" class="m-1 btn btn-sm btn-info">Düzenle</button>`;
+                            var deletebutton = `<button type="button" title="Bankayı silmek için tıkla." onclick="OpenDeleteBankModal(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
+                            var updatebutton = `<button type="button" title="Bankayı düzenlemek için tıkla." onclick="OpenUpdateBankModal(${row.Id})" class="m-1 btn btn-sm btn-info">Düzenle</button>`;
                             return updatebutton + deletebutton;
                         }
                     },
                 ]
             });
-        }
-
-
-        function DeleteBank(id) {
-            alert(id);
-        }
-
-        function UpdateBank(id) {
-            alert(id);
         }
 
         function OpenAddBankModal() {
@@ -139,7 +176,7 @@
             $.ajax({
                 type: "POST",
                 url: "/Bank/CreateBank",
-                data: { bank: object },
+                data: object,
                 success: function (data) {
                     CloseAddModal();
                     if (data.Success) {
@@ -170,5 +207,155 @@
             });
         }
 
+        function OpenUpdateBankModal(id) {
+            $.ajax({
+                type: "GET",
+                url: "/Bank/GetBankById",
+                data: { id: id },
+                success: function (data) {
+                    if (data) {
+                        $("#bankIdUpdateInput").val(data.Id);
+                        $("#bankNameUpdateInput").val(data.Name);
+                        $("#bankCodeUpdateInput").val(data.Code);
+                        $("#updateBankModal").modal("show");
+                    } else {
+                        Swal.fire({
+                            title: "Hata!",
+                            text: "Banka bilgisi alınamadı.",
+                            icon: "error"
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+        function CloseUpdateModal() {
+            $("#updateBankModal").modal("hide");
+        }
+
+        $("#updateBankForm").on("submit", function (event) {
+            event.preventDefault();
+            UpdateBank();
+        });
+
+        function UpdateBank() {
+            var object = {
+                Id: $("#bankIdUpdateInput").val(),
+                Name: $("#bankNameUpdateInput").val(),
+                Code: $("#bankCodeUpdateInput").val(),
+            }
+
+            $.ajax({
+                type: "POST",
+                url: "/Bank/UpdateBank",
+                data: object,
+                success: function (data) {
+                    CloseUpdateModal();
+                    if (data.Success) {
+                        Swal.fire({
+                            title: "Başarılı!",
+                            text: data.Message,
+                            icon: "success"
+                        }).then((result) => {
+                            table.ajax.reload();
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Uyarı!",
+                            text: data.Message,
+                            icon: "warning"
+                        });
+                    }
+                },
+                error: function () {
+                    CloseUpdateModal();
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+        function OpenDeleteBankModal(id) {
+            $.ajax({
+                type: "GET",
+                url: "/Bank/GetBankById",
+                data: { id: id },
+                success: function (data) {
+                    if (data) {
+                        $("#bankIdDeleteInput").val(data.Id);
+                        console.log($("#bankIdDeleteInput").val());
+                        $("#deleteBankModal").modal("show");
+                    } else {
+                        Swal.fire({
+                            title: "Hata!",
+                            text: "Banka bilgisi alınamadı.",
+                            icon: "error"
+                        });
+                    }
+                },
+                error: function () {
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
+
+        function CloseDeleteModal() {
+            $("#deleteBankModal").modal("hide");
+        }
+
+        $("#deleteBankForm").on("submit", function (event) {
+            event.preventDefault();
+            DeleteBank($("#bankIdDeleteInput").val());
+        });
+
+        function DeleteBank(id) {
+            $.ajax({
+                type: "POST",
+                url: "/Bank/DeleteBank",
+                data: { id: id },
+                success: function (data) {
+                    CloseDeleteModal();
+                    if (data.Success) {
+                        Swal.fire({
+                            title: "Başarılı!",
+                            text: data.Message,
+                            icon: "success"
+                        }).then((result) => {
+                            table.ajax.reload();
+                        });
+                    }
+                    else {
+                        Swal.fire({
+                            title: "Uyarı!",
+                            text: data.Message,
+                            icon: "warning"
+                        });
+                    }
+                },
+                error: function () {
+                    CloseDeleteModal();
+                    Swal.fire({
+                        title: "Hata!",
+                        text: "Beklenmeyen bir hata oluştu.",
+                        icon: "error"
+                    });
+                }
+            });
+        }
     </script>
 }
