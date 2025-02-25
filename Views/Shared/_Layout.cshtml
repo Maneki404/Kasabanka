@@ -26,12 +26,14 @@
                 <ul class="navbar-nav flex-grow-1">
                     <li>@Html.ActionLink("Bankalar", "Index", "Bank", new { area = "" }, new { @class = "nav-link" })</li>
                     <li>@Html.ActionLink("Kasalar", "Index", "Safe", new { area = "" }, new { @class = "nav-link" })</li>
+                    <li>@Html.ActionLink("İşlemler", "Index", "Transactions", new { area = "" }, new { @class = "nav-link" })</li>
                 </ul>
             </div>
         </div>
     </nav>
-    <div class="container body-content d-flex flex-column flex-grow-1 justify-content-between">
+    <div class="container body-content d-flex flex-column flex-grow-1">
         @RenderBody()
+        <div class="d-flex flex-grow-1"></div>
         <div>
             <hr />
             <footer>
