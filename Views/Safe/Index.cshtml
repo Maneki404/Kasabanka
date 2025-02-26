@@ -42,6 +42,7 @@
             </div>
             <form id="addSafeForm">
                 <div class="modal-body">
+                    <input type="hidden" id="safeIdInput" />
                     <label>Kasa Kodu</label>
                     <input class="form-control mb-2" name="safeCodeInput" id="safeCodeInput" placeholder="Kasa kodunu giriniz" required />
                     <label>Kasa Adı</label>
@@ -106,10 +107,54 @@
             InitializeTable();
         });
 
+        function GetAmounts(currency, safeId, callback) {
+            $.ajax({
+                type: "GET",
+                url: "/Transactions/GetAmountsByCurrency",
+                data: { currency: currency, safeId: safeId, isBank: false },
+                success: function (data) {
+                    var totalAmount = 0;
+
+                    $.each(data.data, function (index, amount) {
+                        totalAmount += amount;
+                    });
+
+                    totalAmount = totalAmount.toFixed(2) + " " + currencySymbol(currency);
+
+                    callback(totalAmount);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching transactions.");
+                    console.error("Response:", xhr.responseText);
+                    callback("0.00 " + currencySymbol(currency)); // Default to zero in case of an error
+                }
+            });
+        }
+
+        function currencySymbol(currency) {
+            switch (currency) {
+                case "TL": return "₺";
+                case "USD": return "$";
+                case "EUR": return "€";
+                case "GBP": return "£";
+                default: return "";
+            }
+        }
+
         function InitializeTable() {
             table = new DataTable('#safeTable', {
                 ajax: {
                     url: '/Safe/GetSafes',
+                    dataSrc: function (json) {
+                        setTimeout(() => {
+                            table.rows().every(function () {
+                                var row = this;
+                                var safeId = row.data().Id;
+                                UpdateCurrencyColumns(row, safeId);
+                            });
+                        }, 1000);
+                        return json.data;
+                    }
                 },
                 language: {
                     url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/tr.json',
@@ -117,22 +162,10 @@
                 columns: [
                     { data: 'Code' },
                     { data: 'Name' },
-                    {
-                        data: null,
-                        render: function () { return "0.00 ₺"; }
-                    },
-                    {
-                        data: null,
-                        render: function () { return "0.00 €"; }
-                    },
-                    {
-                        data: null,
-                        render: function () { return "0.00 $"; }
-                    },
-                    {
-                        data: null,
-                        render: function () { return "0.00 £"; }
-                    },
+                    { data: null, defaultContent: "Loading...", className: "tl-amount" },
+                    { data: null, defaultContent: "Loading...", className: "usd-amount" },
+                    { data: null, defaultContent: "Loading...", className: "eur-amount" },
+                    { data: null, defaultContent: "Loading...", className: "gbp-amount" },
                     {
                         data: null,
                         render: function (data, type, row) {
@@ -142,6 +175,28 @@
                         }
                     },
                 ]
+            });
+        }
+
+        function UpdateCurrencyColumns(row, safeId) {
+            if (!row) {
+                console.warn("Row not found for safeId:", safeId);
+                return;
+            }
+
+            var rowNode = $(row.node());
+
+            GetAmounts("TL", safeId, function (amount) {
+                rowNode.find(".tl-amount").html(amount);
+            });
+            GetAmounts("USD", safeId, function (amount) {
+                rowNode.find(".usd-amount").html(amount);
+            });
+            GetAmounts("EUR", safeId, function (amount) {
+                rowNode.find(".eur-amount").html(amount);
+            });
+            GetAmounts("GBP", safeId, function (amount) {
+                rowNode.find(".gbp-amount").html(amount);
             });
         }
 

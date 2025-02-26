@@ -113,14 +113,13 @@
             InitializeTable();
         });
 
-
         function GetAmounts(currency, bankId, callback) {
             console.warn("Currency", currency);
             console.warn("BankId", typeof (bankId));
             $.ajax({
                 type: "GET",
                 url: "/Transactions/GetAmountsByCurrency",
-                data: { currency: currency, bankId: bankId, },
+                data: { currency: currency, bankId: bankId, isBank: true },
                 success: function (data) {
                     var totalAmount = 0;
 
@@ -211,9 +210,6 @@
                 rowNode.find(".gbp-amount").html(amount);
             });
         }
-
-
-
 
         function OpenAddBankModal() {
             $("#bankNameInput").val("");

@@ -240,12 +240,16 @@
 
 
         function SaveNewTransaction() {
+            var amount = $("#transactionAmountInput").val();
+            if ($("#transactionTypeDropdown").val() == "Giden Havale" || $("#transactionTypeDropdown").val() == "Nakit Ödeme") {
+                amount = -amount;
+            }
             var object = {
                 Type: $("#transactionTypeDropdown").val(),
                 No: $("#transactionNoInput").val(),
                 Description: $("#transactionDescriptionInput").val(),
                 Currency: $("#transactionCurrencyDropdown").val(),
-                Amount: $("#transactionAmountInput").val(),
+                Amount: amount,
                 SafeOrBank: $("#transactionSafeOrBankDropdown").val(),
                 Date: new Date().toISOString()
             }

@@ -17,48 +17,92 @@ namespace Kasabanka.Controllers
             return View();
         }
 
-        public JsonResult GetAmountsByCurrency(string currency, int bankId)
+        public JsonResult GetAmountsByCurrency(string currency, int? bankId, int? safeId, bool isBank)
         {
             List<decimal> amounts = new List<decimal>();
-
-            using (SqlConnection connection = new SqlConnection(DbHelper.connection))
+            if (isBank)
             {
-                connection.Open();
-
-                Bank bank = null;
-                using (SqlCommand getBank = new SqlCommand("SELECT BankCode, BankName FROM KASABANKA_BANK WHERE Id = @bankId", connection))
+                using (SqlConnection connection = new SqlConnection(DbHelper.connection))
                 {
-                    getBank.Parameters.Add(new SqlParameter("@bankId", bankId));
-                    using (SqlDataReader dr = getBank.ExecuteReader())
+                    connection.Open();
+
+                    Bank bank = null;
+                    using (SqlCommand getBank = new SqlCommand("SELECT BankCode, BankName FROM KASABANKA_BANK WHERE Id = @bankId", connection))
                     {
-                        if (dr.Read())
+                        getBank.Parameters.Add(new SqlParameter("@bankId", bankId));
+                        using (SqlDataReader dr = getBank.ExecuteReader())
                         {
-                            bank = new Bank
+                            if (dr.Read())
                             {
-                                Code = dr.GetString(0),
-                                Name = dr.GetString(1)
-                            };
+                                bank = new Bank
+                                {
+                                    Code = dr.GetString(0),
+                                    Name = dr.GetString(1)
+                                };
+                            }
                         }
                     }
-                }
 
-                if (bank != null)
-                {
-                    using (SqlCommand bringAmounts = new SqlCommand("SELECT Amount FROM KASABANKA_TRANSACTION WHERE CURRENCY = @currency AND SAFEORBANK = @bank", connection))
+                    if (bank != null)
                     {
-                        bringAmounts.Parameters.Add(new SqlParameter("@currency", currency));
-                        bringAmounts.Parameters.Add(new SqlParameter("@bank", bank.Code + " - " + bank.Name));
-
-                        using (SqlDataReader dr = bringAmounts.ExecuteReader())
+                        using (SqlCommand bringAmounts = new SqlCommand("SELECT Amount FROM KASABANKA_TRANSACTION WHERE CURRENCY = @currency AND SAFEORBANK = @bank", connection))
                         {
-                            while (dr.Read())
+                            bringAmounts.Parameters.Add(new SqlParameter("@currency", currency));
+                            bringAmounts.Parameters.Add(new SqlParameter("@bank", bank.Code + " - " + bank.Name));
+
+                            using (SqlDataReader dr = bringAmounts.ExecuteReader())
                             {
-                                amounts.Add(dr.GetDecimal(0));
+                                while (dr.Read())
+                                {
+                                    amounts.Add(dr.GetDecimal(0));
+                                }
                             }
                         }
                     }
                 }
             }
+            else
+            {
+                using (SqlConnection connection = new SqlConnection(DbHelper.connection))
+                {
+                    connection.Open();
+
+                    Safe safe = null;
+                    using (SqlCommand getSafe = new SqlCommand("SELECT SafeCode, SafeName FROM KASABANKA_SAFE WHERE Id = @safeId", connection))
+                    {
+                        getSafe.Parameters.Add(new SqlParameter("@safeId", safeId));
+                        using (SqlDataReader dr = getSafe.ExecuteReader())
+                        {
+                            if (dr.Read())
+                            {
+                                safe = new Safe
+                                {
+                                    Code = dr.GetString(0),
+                                    Name = dr.GetString(1)
+                                };
+                            }
+                        }
+                    }
+
+                    if (safe != null)
+                    {
+                        using (SqlCommand bringAmounts = new SqlCommand("SELECT Amount FROM KASABANKA_TRANSACTION WHERE CURRENCY = @currency AND SAFEORBANK = @safe", connection))
+                        {
+                            bringAmounts.Parameters.Add(new SqlParameter("@currency", currency));
+                            bringAmounts.Parameters.Add(new SqlParameter("@safe", safe.Code + " - " + safe.Name));
+
+                            using (SqlDataReader dr = bringAmounts.ExecuteReader())
+                            {
+                                while (dr.Read())
+                                {
+                                    amounts.Add(dr.GetDecimal(0));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
 
             return Json(new { data = amounts }, JsonRequestBehavior.AllowGet);
         }
