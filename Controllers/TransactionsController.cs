@@ -144,6 +144,7 @@ namespace Kasabanka.Controllers
 
         }
 
+        // NOT USING
         public JsonResult GetTransactionById(String id)
         {
             Transaction transaction = new Transaction();

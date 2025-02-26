@@ -173,15 +173,15 @@
                 columns: [
                     { data: 'Code' },
                     { data: 'Name' },
-                    { data: null, defaultContent: "Loading...", className: "tl-amount" },
-                    { data: null, defaultContent: "Loading...", className: "usd-amount" },
-                    { data: null, defaultContent: "Loading...", className: "eur-amount" },
-                    { data: null, defaultContent: "Loading...", className: "gbp-amount" },
+                    { data: null, defaultContent: "Yükleniyor...", className: "tl-amount" },
+                    { data: null, defaultContent: "Yükleniyor...", className: "usd-amount" },
+                    { data: null, defaultContent: "Yükleniyor...", className: "eur-amount" },
+                    { data: null, defaultContent: "Yükleniyor...", className: "gbp-amount" },
                     {
                         data: null,
                         render: function (data, type, row) {
                             var deletebutton = `<button type="button" title="Bankayı silmek için tıkla." onclick="OpenDeleteBankModal(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
-                            var updatebutton = `<button type="button" title="Bankayı düzenlemek için tıkla." onclick="OpenUpdateBankModal(${row.Id})" class="m-1 btn btn-sm btn-info">Düzenle</button>`;
+                            var updatebutton = `<button type="button" title="Bankayı düzenlemek için tıkla." onclick="OpenUpdateBankModal(${row.Id})" class="m-1 btn btn-sm btn-primary text-light">Düzenle</button>`;
                             return updatebutton + deletebutton;
                         }
                     },
