@@ -42,6 +42,7 @@
             </div>
             <form id="addBankForm">
                 <div class="modal-body">
+                    <input type="hidden" id="bankIdInput" />
                     <label>Banka Kodu</label>
                     <input class="form-control mb-2" name="bankCodeInput" id="bankCodeInput" placeholder="Banka kodunu giriniz" required />
                     <label>Banka Adı</label>
@@ -112,10 +113,59 @@
             InitializeTable();
         });
 
+
+        function GetAmounts(currency, bankId, callback) {
+            console.warn("Currency", currency);
+            console.warn("BankId", typeof (bankId));
+            $.ajax({
+                type: "GET",
+                url: "/Transactions/GetAmountsByCurrency",
+                data: { currency: currency, bankId: bankId, },
+                success: function (data) {
+                    var totalAmount = 0;
+
+                    $.each(data.data, function (index, amount) {
+                        totalAmount += amount;
+                    });
+                    console.warn("Total:" + totalAmount);
+                    console.warn("FormattedAmount:" + totalAmount);
+
+                    totalAmount = totalAmount.toFixed(2) + " " + currencySymbol(currency);
+
+                    callback(totalAmount);
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error fetching transactions.");
+                    console.error("Response:", xhr.responseText);
+                    callback("0.00 " + currencySymbol(currency)); // Default to zero in case of an error
+                }
+            });
+        }
+
+        function currencySymbol(currency) {
+            switch (currency) {
+                case "TL": return "₺";
+                case "USD": return "$";
+                case "EUR": return "€";
+                case "GBP": return "£";
+                default: return "";
+            }
+        }
+
         function InitializeTable() {
             table = new DataTable('#bankTable', {
                 ajax: {
                     url: '/Bank/GetBanks',
+                    dataSrc: function (json) {
+                        setTimeout(() => {
+                            table.rows().every(function () {
+                                var row = this;
+                                var bankId = row.data().Id;
+                                UpdateCurrencyColumns(row, bankId);
+                            });
+                        }, 1000);
+                        return json.data;
+                    }
                 },
                 language: {
                     url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/tr.json',
@@ -124,22 +174,10 @@
                 columns: [
                     { data: 'Code' },
                     { data: 'Name' },
-                    {
-                        data: null,
-                        render: function (data, type, row) { return "0.00 ₺"; }
-                    },
-                    {
-                        data: null,
-                        render: function (data, type, row) { return "0.00 €"; }
-                    },
-                    {
-                        data: null,
-                        render: function (data, type, row) { return "0.00 $"; }
-                    },
-                    {
-                        data: null,
-                        render: function (data, type, row) { return "0.00 £"; }
-                    },
+                    { data: null, defaultContent: "Loading...", className: "tl-amount" },
+                    { data: null, defaultContent: "Loading...", className: "usd-amount" },
+                    { data: null, defaultContent: "Loading...", className: "eur-amount" },
+                    { data: null, defaultContent: "Loading...", className: "gbp-amount" },
                     {
                         data: null,
                         render: function (data, type, row) {
@@ -151,6 +189,31 @@
                 ]
             });
         }
+
+        function UpdateCurrencyColumns(row, bankId) {
+            if (!row) {
+                console.warn("Row not found for bankId:", bankId);
+                return;
+            }
+
+            var rowNode = $(row.node());
+
+            GetAmounts("TL", bankId, function (amount) {
+                rowNode.find(".tl-amount").html(amount);
+            });
+            GetAmounts("USD", bankId, function (amount) {
+                rowNode.find(".usd-amount").html(amount);
+            });
+            GetAmounts("EUR", bankId, function (amount) {
+                rowNode.find(".eur-amount").html(amount);
+            });
+            GetAmounts("GBP", bankId, function (amount) {
+                rowNode.find(".gbp-amount").html(amount);
+            });
+        }
+
+
+
 
         function OpenAddBankModal() {
             $("#bankNameInput").val("");
@@ -357,5 +420,7 @@
                 }
             });
         }
+
+
     </script>
 }

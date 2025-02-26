@@ -16,6 +16,55 @@ namespace Kasabanka.Controllers
         {
             return View();
         }
+
+        public JsonResult GetAmountsByCurrency(string currency, int bankId)
+        {
+            List<decimal> amounts = new List<decimal>();
+
+            using (SqlConnection connection = new SqlConnection(DbHelper.connection))
+            {
+                connection.Open();
+
+                Bank bank = null;
+                using (SqlCommand getBank = new SqlCommand("SELECT BankCode, BankName FROM KASABANKA_BANK WHERE Id = @bankId", connection))
+                {
+                    getBank.Parameters.Add(new SqlParameter("@bankId", bankId));
+                    using (SqlDataReader dr = getBank.ExecuteReader())
+                    {
+                        if (dr.Read())
+                        {
+                            bank = new Bank
+                            {
+                                Code = dr.GetString(0),
+                                Name = dr.GetString(1)
+                            };
+                        }
+                    }
+                }
+
+                if (bank != null)
+                {
+                    using (SqlCommand bringAmounts = new SqlCommand("SELECT Amount FROM KASABANKA_TRANSACTION WHERE CURRENCY = @currency AND SAFEORBANK = @bank", connection))
+                    {
+                        bringAmounts.Parameters.Add(new SqlParameter("@currency", currency));
+                        bringAmounts.Parameters.Add(new SqlParameter("@bank", bank.Code + " - " + bank.Name));
+
+                        using (SqlDataReader dr = bringAmounts.ExecuteReader())
+                        {
+                            while (dr.Read())
+                            {
+                                amounts.Add(dr.GetDecimal(0));
+                            }
+                        }
+                    }
+                }
+            }
+
+            return Json(new { data = amounts }, JsonRequestBehavior.AllowGet);
+        }
+
+
+
         public JsonResult GetTransactions()
         {
             List<Transaction> transactions = new List<Transaction>();
