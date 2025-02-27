@@ -6,7 +6,12 @@
     <title>@ViewBag.Title - KasaBanka</title>
     <link href="~/library/datatables/css/datatables.css" rel="stylesheet" />
     <link href="~/library/sweetalert/sweetalert2.min.css" rel="stylesheet" />
-    @Styles.Render("~/Content/css")
+    <link href="~/Content/themes/lumen.css" rel="stylesheet" />
+    @*<link href="~/Content/themes/lux.css" rel="stylesheet" />*@
+    @*<link href="~/Content/themes/minty.css" rel="stylesheet" />*@
+    @*<link href="~/Content/themes/litera.css" rel="stylesheet" />*@
+    @*<link href="~/Content/themes/flatly.css" rel="stylesheet" />*@
+    @*@Styles.Render("~/Content/css")*@
     @Scripts.Render("~/bundles/modernizr")
     <style>
         .navbar {
@@ -31,7 +36,7 @@
             </div>
         </div>
     </nav>
-    <div class="container body-content d-flex flex-column flex-grow-1">
+    <div class="container body-content d-flex flex-column flex-grow-1 mt-5">
         @RenderBody()
         <div class="d-flex flex-grow-1"></div>
         <div>

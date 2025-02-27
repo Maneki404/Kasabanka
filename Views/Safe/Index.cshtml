@@ -14,7 +14,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">Kasalar</h2>
-    <button class="btn btn-warning px-3" type="button" title="Yeni kasa eklemek için tıklayınız." onclick="OpenAddSafeModal()">Yeni Kasa Oluştur</button>
+    <button class="btn btn-warning px-3" type="button" title="Yeni kasa eklemek için tıklayınız." onclick="OpenAddSafeModal()">YENİ KASA OLUŞTUR</button>
 </div>
 
 <table id="safeTable" class="table table-striped table-bordered display">
@@ -48,7 +48,7 @@
                     <input class="form-control mb-2" id="safeNameInput" placeholder="Kasa adını giriniz" required />
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
                     <button type="button" class="btn btn-default" onclick="CloseAddModal()">Vazgeç</button>
                 </div>
             </form>
@@ -72,7 +72,7 @@
                     <input class="form-control mb-2" id="safeNameUpdateInput" placeholder="Kasa adını giriniz" required />
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" class="btn btn-success">Kaydet</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
                     <button type="button" class="btn btn-default" onclick="CloseUpdateModal()">Vazgeç</button>
                 </div>
             </form>
@@ -90,8 +90,8 @@
             <form id="deleteSafeForm">
                 <div class="modal-body">
                     <input type="hidden" id="safeIdDeleteInput" />
-                    <button type="submit" class="btn btn-danger">Evet</button>
-                    <button type="button" class="btn btn-outline-dark" onclick="CloseDeleteModal()">Hayır</button>
+                    <button type="submit" class="btn btn-danger">EVET</button>
+                    <button type="button" class="btn btn-outline-dark" onclick="CloseDeleteModal()">HAYIR</button>
                 </div>
             </form>
         </div>
@@ -211,13 +211,13 @@
                         data: null,
                         render: function (data, type, row) {
                             return `
-                                    <button type="button" title="Kasayı düzenlemek için tıkla."
-                                            onclick="OpenUpdateSafeModal(${row.Id})"
-                                            class="m-1 btn btn-sm px-3 btn-info">Düzenle</button>
-                                    <button type="button" title="Kasayı silmek için tıkla."
-                                            onclick="OpenDeleteSafeModal(${row.Id})"
-                                            class="m-1 btn btn-sm px-3 btn-danger">Sil</button>
-                                `;
+                                                                                <button type="button" title="Kasayı düzenlemek için tıkla."
+                                                                                        onclick="OpenUpdateSafeModal(${row.Id})"
+                                                                                        class="m-1 btn btn-sm px-3 btn-info">DÜZENLE</button>
+                                                                                <button type="button" title="Kasayı silmek için tıkla."
+                                                                                        onclick="OpenDeleteSafeModal(${row.Id})"
+                                                                                        class="m-1 btn btn-sm px-3 btn-danger">SİL</button>
+                                                                            `;
                         }
                     }
                 ],

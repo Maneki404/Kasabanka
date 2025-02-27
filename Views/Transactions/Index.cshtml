@@ -15,7 +15,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h2 class="mb-0">İşlemler</h2>
-    <button class="btn btn-warning px-3" type="button" title="Yeni işlem eklemek için tıklayınız." onclick="OpenAddModal()">Yeni İşlem Oluştur</button>
+    <button class="btn btn-warning px-3" type="button" title="Yeni işlem eklemek için tıklayınız." onclick="OpenAddModal()">YENİ İŞLEM OLUŞTUR</button>
 </div>
 
 <div class="row mb-3 d-flex align-items-end">
@@ -68,7 +68,7 @@
     </div>
 
     <div class="col-md-1">
-        <button class="btn btn-info px-3" onclick="filterTable()">Filtrele</button>
+        <button class="btn btn-info px-3" onclick="filterTable()">FİLTRELE</button>
     </div>
 </div>
 
@@ -150,8 +150,8 @@
             <form id="deleteTransactionForm">
                 <div class="modal-body">
                     <input type="hidden" id="transactionIdDeleteInput" />
-                    <button type="submit" class="btn btn-danger">Evet</button>
-                    <button type="button" class="btn btn-outline-dark" onclick="CloseDeleteModal()">Hayır</button>
+                    <button type="submit" class="btn btn-danger">EVET</button>
+                    <button type="button" class="btn btn-outline-dark" onclick="CloseDeleteModal()">HAYIR</button>
                 </div>
             </form>
         </div>
@@ -186,28 +186,28 @@
                     fetchBanks();
                     // Add only bank-related transaction types
                     typeDropdown.append(`
-                            <option value="Gelen Havale">Gelen Havale</option>
-                            <option value="Giden Havale">Giden Havale</option>
-                        `);
+                                                                            <option value="Gelen Havale">Gelen Havale</option>
+                                                                            <option value="Giden Havale">Giden Havale</option>
+                                                                        `);
                 } else if (selectedValue === "Kasa") {
                     label.text("Kasa Seçiniz");
                     fetchSafes();
                     // Add only safe-related transaction types
                     typeDropdown.append(`
-                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
-                            <option value="Nakit Ödeme">Nakit Ödeme</option>
-                        `);
+                                                                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+                                                                            <option value="Nakit Ödeme">Nakit Ödeme</option>
+                                                                        `);
                 } else {
                     // If no option is selected (Tümü), show both banks and safes
                     label.text("Banka / Kasa Seçiniz");
                     fetchBothBanksAndSafes();
                     // Add all transaction types
                     typeDropdown.append(`
-                            <option value="Gelen Havale">Gelen Havale</option>
-                            <option value="Giden Havale">Giden Havale</option>
-                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
-                            <option value="Nakit Ödeme">Nakit Ödeme</option>
-                        `);
+                                                                            <option value="Gelen Havale">Gelen Havale</option>
+                                                                            <option value="Giden Havale">Giden Havale</option>
+                                                                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+                                                                            <option value="Nakit Ödeme">Nakit Ödeme</option>
+                                                                        `);
                 }
             });
 
@@ -340,7 +340,7 @@
                         data: null,
                         className: "text-center",
                         render: function (data, type, row) {
-                            return `<button type="button" title="İşlemi silmek için tıkla." onclick="OpenDeleteModal(${row.Id})" class="m-1 btn btn-sm px-3 btn-danger">Sil</button>`;
+                            return `<button type="button" title="İşlemi silmek için tıkla." onclick="OpenDeleteModal(${row.Id})" class="m-1 btn btn-sm px-3 btn-danger">SİL</button>`;
                         }
                     }
 
