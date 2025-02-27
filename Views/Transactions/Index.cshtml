@@ -18,6 +18,63 @@
     <button class="btn btn-primary" type="button" title="Yeni işlem eklemek için tıklayınız." onclick="OpenAddModal()">Yeni İşlem Oluştur</button>
 </div>
 
+<div class="row mb-3 d-flex align-items-end">
+    <div class="col-md-2">
+        <label for="filterSafeOrBank">Banka / Kasa</label>
+        <select id="filterSafeOrBank" class="form-control">
+            <option value="">Tümü</option>
+            <option value="Banka">Banka</option>
+            <option value="Kasa">Kasa</option>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label id="filterSafeOrBankLabel" for="filterSafeOrBankSelection">Banka / Kasa Seçiniz</label>
+        <select id="filterSafeOrBankSelection" class="form-control">
+            <option value="">Tümü</option>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label for="filterType">İşlem Türü</label>
+        <select id="filterType" class="form-control">
+            <option value="">Tümü</option>
+            <option value="Gelen Havale">Gelen Havale</option>
+            <option value="Giden Havale">Giden Havale</option>
+            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+            <option value="Nakit Ödeme">Nakit Ödeme</option>
+        </select>
+    </div>
+
+    <div class="col-md-1">
+        <label for="filterCurrency">Para Birimi</label>
+        <select id="filterCurrency" class="form-control">
+            <option value="">Tümü</option>
+            <option value="TL">TL (₺)</option>
+            <option value="USD">USD ($)</option>
+            <option value="EUR">EUR (€)</option>
+            <option value="GBP">GBP (£)</option>
+        </select>
+    </div>
+
+    <div class="col-md-2">
+        <label for="startDate">Başlangıç Tarihi</label>
+        <input type="date" id="startDate" class="form-control">
+    </div>
+
+    <div class="col-md-2">
+        <label for="endDate">Bitiş Tarihi</label>
+        <input type="date" id="endDate" class="form-control">
+    </div>
+
+    <div class="col-md-1">
+        <button class="btn btn-primary" onclick="filterTable()">Filtrele</button>
+    </div>
+</div>
+
+
+
+
 <table id="transactionTable" class="table table-striped table-bordered display">
     <thead>
         <tr>
@@ -64,7 +121,7 @@
                         <option value="GBP">GBP (£)</option>
                     </select>
                     <label>Para Miktarı</label>
-                    <input class="form-control mb-2" name="transactionAmountInput" id="transactionAmountInput" placeholder="Para miktarını giriniz" required type="number" />
+                    <input class="form-control mb-2" name="transactionAmountInput" id="transactionAmountInput" placeholder="Para miktarını giriniz" required />
                     <label id="bankOrSafeLabel" style="display: none;">Banka veya Kasa</label>
                     <select id="transactionSafeOrBankDropdown" style="display: none;" class="form-control mb-2" required>
                         <option value="">Seçiniz</option>
@@ -85,12 +142,67 @@
 
 
 @section scripts {
+
     <script>
         var table;
 
         $(function () {
             InitializeTable();
+
+            $("#filterSafeOrBank").change(function () {
+                var selectedValue = $(this).val();
+                var secondDropdown = $("#filterSafeOrBankSelection");
+                var label = $("#filterSafeOrBankLabel");
+
+                // Clear previous options
+                secondDropdown.empty();
+                secondDropdown.append('<option value="">Tümü</option>');
+
+                // Update label and fetch data accordingly
+                if (selectedValue === "Banka") {
+                    label.text("Banka Seçiniz");
+                    fetchBanks();
+                } else if (selectedValue === "Kasa") {
+                    label.text("Kasa Seçiniz");
+                    fetchSafes();
+                } else {
+                    label.text("Banka / Kasa Seçiniz");
+                }
+            });
         });
+
+
+        function fetchBanks() {
+            $.ajax({
+                type: "GET",
+                url: "/Bank/GetBanks",
+                success: function (data) {
+                    var secondDropdown = $("#filterSafeOrBankSelection");
+                    $.each(data.data, function (index, bank) {
+                        secondDropdown.append('<option value="' + bank.Code + '">' + bank.Code + " - " + bank.Name + '</option>');
+                    });
+                },
+                error: function () {
+                    console.error("Error fetching banks");
+                }
+            });
+        }
+
+        function fetchSafes() {
+            $.ajax({
+                type: "GET",
+                url: "/Safe/GetSafes",
+                success: function (data) {
+                    var secondDropdown = $("#filterSafeOrBankSelection");
+                    $.each(data.data, function (index, safe) {
+                        secondDropdown.append('<option value="' + safe.Code + '">' + safe.Code + " - " + safe.Name + '</option>');
+                    });
+                },
+                error: function () {
+                    console.error("Error fetching safes");
+                }
+            });
+        }
 
         function formatJsonDate(jsonDate) {
             var date = new Date(Number(jsonDate.match(/\d+/)[0]));
@@ -110,13 +222,18 @@
 
         function InitializeTable() {
             table = new DataTable('#transactionTable', {
+                processing: true,
+                serverSide: false, // Tüm veriler tek seferde gelecek
                 ajax: {
                     url: '/Transactions/GetTransactions',
+                    type: 'GET',
+                    error: function (xhr, error, thrown) {
+                        console.error('DataTables error:', error, thrown);
+                    }
                 },
                 language: {
                     url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/tr.json',
                 },
-
                 columns: [
                     { data: 'Type' },
                     { data: 'No' },
@@ -125,20 +242,46 @@
                     {
                         data: 'Amount',
                         render: function (data) {
-                            return data ? data.replace(",", ".")
-                                : "-";
+                            if (!data) return "-";
+                            const amount = parseFloat(data);
+                            return amount.toLocaleString('en-US', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
                         }
                     },
                     { data: 'SafeOrBank' },
                     {
                         data: 'Date',
-                        render: function (data, type, row) {
+                        render: function (data) {
                             return formatJsonDate(data);
                         }
-                    },
-                ]
+                    }
+                ],
+                order: [[6, 'desc']], // Tarihe göre sıralama
+                responsive: true,
+                pageLength: 25
             });
         }
+
+        function filterTable() {
+            var safeOrBank = $("#filterSafeOrBank").val();
+            var safeOrBankSelection = $("#filterSafeOrBankSelection").val();
+            var type = $("#filterType").val();
+            var currency = $("#filterCurrency").val();
+            var startDate = $("#startDate").val();
+            var endDate = $("#endDate").val();
+
+            table.ajax.url('/Transactions/GetTransactions?' +
+                'safeOrBank=' + encodeURIComponent(safeOrBank) +
+                '&safeOrBankSelection=' + encodeURIComponent(safeOrBankSelection) +
+                '&type=' + encodeURIComponent(type) +
+                '&currency=' + encodeURIComponent(currency) +
+                '&startDate=' + encodeURIComponent(startDate) +
+                '&endDate=' + encodeURIComponent(endDate)
+            ).load();
+        }
+
 
 
         $("#transactionTypeDropdown").change(function () {
@@ -240,21 +383,29 @@
 
 
         function SaveNewTransaction() {
-            var amount = $("#transactionAmountInput").val();
-            if ($("#transactionTypeDropdown").val() == "Giden Havale" || $("#transactionTypeDropdown").val() == "Nakit Ödeme") {
-                amount = -amount;
+            var selectedType = $("#transactionTypeDropdown").val();
+            var amount = parseFloat($("#transactionAmountInput").val());
+
+            // İşlem türüne göre miktar işareti belirleme
+            if (selectedType === "Giden Havale" || selectedType === "Nakit Ödeme") {
+                amount = -Math.abs(amount);
+            } else {
+                amount = Math.abs(amount);
             }
+
+            var safeOrBankValue = $("#transactionSafeOrBankDropdown").val();
+            var isBank = selectedType === "Gelen Havale" || selectedType === "Giden Havale";
+
             var object = {
-                Type: $("#transactionTypeDropdown").val(),
+                Type: selectedType,
                 No: $("#transactionNoInput").val(),
                 Description: $("#transactionDescriptionInput").val(),
                 Currency: $("#transactionCurrencyDropdown").val(),
-                Amount: amount,
-                SafeOrBank: $("#transactionSafeOrBankDropdown").val(),
+                Amount: amount.toString(),
+                SafeOrBank: safeOrBankValue,
+                IsBank: isBank,
                 Date: new Date().toISOString()
-            }
-
-            console.warn(object);
+            };
 
             $.ajax({
                 type: "POST",
@@ -270,8 +421,7 @@
                         }).then((result) => {
                             table.ajax.reload();
                         });
-                    }
-                    else {
+                    } else {
                         Swal.fire({
                             title: "Uyarı!",
                             text: data.Message,

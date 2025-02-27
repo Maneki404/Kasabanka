@@ -1,10 +1,8 @@
 ﻿using Kasabanka.Models;
 using System;
 using System.Collections.Generic;
-using System.Data;
 using System.Data.SqlClient;
 using System.Globalization;
-using System.Linq;
 using System.Web.Mvc;
 
 namespace Kasabanka.Controllers
@@ -17,131 +15,154 @@ namespace Kasabanka.Controllers
             return View();
         }
 
-        public JsonResult GetAmountsByCurrency(string currency, int? bankId, int? safeId, bool isBank)
+        // TransactionsController.cs
+        public JsonResult GetAmounts(string currency, int safeOrBankId, bool isBank)
         {
-            List<decimal> amounts = new List<decimal>();
-            if (isBank)
+            try
             {
                 using (SqlConnection connection = new SqlConnection(DbHelper.connection))
                 {
                     connection.Open();
-
-                    Bank bank = null;
-                    using (SqlCommand getBank = new SqlCommand("SELECT BankCode, BankName FROM KASABANKA_BANK WHERE Id = @bankId", connection))
+                    using (SqlCommand cmd = new SqlCommand(@"
+                SELECT COALESCE(SUM(CAST(Amount AS DECIMAL(18,2))), 0) as Total
+                FROM KASABANKA_TRANSACTION 
+                WHERE SafeOrBankID = @safeOrBankId 
+                AND IsBank = @isBank 
+                AND Currency = @currency", connection))
                     {
-                        getBank.Parameters.Add(new SqlParameter("@bankId", bankId));
-                        using (SqlDataReader dr = getBank.ExecuteReader())
-                        {
-                            if (dr.Read())
-                            {
-                                bank = new Bank
-                                {
-                                    Code = dr.GetString(0),
-                                    Name = dr.GetString(1)
-                                };
-                            }
-                        }
-                    }
+                        cmd.Parameters.AddWithValue("@safeOrBankId", safeOrBankId);
+                        cmd.Parameters.AddWithValue("@isBank", isBank);
+                        cmd.Parameters.AddWithValue("@currency", currency);
 
-                    if (bank != null)
-                    {
-                        using (SqlCommand bringAmounts = new SqlCommand("SELECT Amount FROM KASABANKA_TRANSACTION WHERE CURRENCY = @currency AND SAFEORBANK = @bank", connection))
-                        {
-                            bringAmounts.Parameters.Add(new SqlParameter("@currency", currency));
-                            bringAmounts.Parameters.Add(new SqlParameter("@bank", bank.Code + " - " + bank.Name));
-
-                            using (SqlDataReader dr = bringAmounts.ExecuteReader())
-                            {
-                                while (dr.Read())
-                                {
-                                    amounts.Add(dr.GetDecimal(0));
-                                }
-                            }
-                        }
+                        decimal amount = Convert.ToDecimal(cmd.ExecuteScalar());
+                        return Json(new { success = true, data = amount }, JsonRequestBehavior.AllowGet);
                     }
                 }
             }
-            else
+            catch (Exception ex)
             {
-                using (SqlConnection connection = new SqlConnection(DbHelper.connection))
-                {
-                    connection.Open();
-
-                    Safe safe = null;
-                    using (SqlCommand getSafe = new SqlCommand("SELECT SafeCode, SafeName FROM KASABANKA_SAFE WHERE Id = @safeId", connection))
-                    {
-                        getSafe.Parameters.Add(new SqlParameter("@safeId", safeId));
-                        using (SqlDataReader dr = getSafe.ExecuteReader())
-                        {
-                            if (dr.Read())
-                            {
-                                safe = new Safe
-                                {
-                                    Code = dr.GetString(0),
-                                    Name = dr.GetString(1)
-                                };
-                            }
-                        }
-                    }
-
-                    if (safe != null)
-                    {
-                        using (SqlCommand bringAmounts = new SqlCommand("SELECT Amount FROM KASABANKA_TRANSACTION WHERE CURRENCY = @currency AND SAFEORBANK = @safe", connection))
-                        {
-                            bringAmounts.Parameters.Add(new SqlParameter("@currency", currency));
-                            bringAmounts.Parameters.Add(new SqlParameter("@safe", safe.Code + " - " + safe.Name));
-
-                            using (SqlDataReader dr = bringAmounts.ExecuteReader())
-                            {
-                                while (dr.Read())
-                                {
-                                    amounts.Add(dr.GetDecimal(0));
-                                }
-                            }
-                        }
-                    }
-                }
+                return Json(new { success = false, error = ex.Message }, JsonRequestBehavior.AllowGet);
             }
-
-
-            return Json(new { data = amounts }, JsonRequestBehavior.AllowGet);
         }
 
 
 
-        public JsonResult GetTransactions()
+        public JsonResult GetTransactions(string safeOrBank, string safeOrBankSelection, string type, string currency, string startDate, string endDate)
         {
-            List<Transaction> transactions = new List<Transaction>();
-
-
-            using (SqlConnection connection = new SqlConnection(DbHelper.connection))
+            try
             {
-                connection.Open();
-                using (SqlCommand bringTransactions = new SqlCommand("SELECT * from KASABANKA_TRANSACTION", connection))
+                List<Transaction> transactions = new List<Transaction>();
+
+                using (SqlConnection connection = new SqlConnection(DbHelper.connection))
                 {
-                    using (SqlDataReader dr = bringTransactions.ExecuteReader())
+                    connection.Open();
+                    string query = @"
+                    SELECT 
+                        T.Id,
+                        T.Type,
+                        T.No,
+                        T.Description,
+                        T.Currency,
+                        T.Amount,
+                        T.Date,
+                        T.IsBank,
+                        T.SafeOrBankID,
+                        CASE 
+                            WHEN T.IsBank = 1 THEN B.BankCode + ' - ' + B.BankName
+                            ELSE S.SafeCode + ' - ' + S.SafeName
+                        END as SafeOrBank
+                    FROM KASABANKA_TRANSACTION T
+                    LEFT JOIN KASABANKA_BANK B ON T.SafeOrBankID = B.ID AND T.IsBank = 1
+                    LEFT JOIN KASABANKA_SAFE S ON T.SafeOrBankID = S.ID AND T.IsBank = 0
+                    WHERE 1=1";
+
+                    List<SqlParameter> parameters = new List<SqlParameter>();
+
+                    if (!string.IsNullOrEmpty(safeOrBank))
                     {
-                        while (dr.Read())
+                        if (safeOrBank == "Banka")
                         {
-                            Transaction transaction = new Transaction()
+                            query += " AND T.IsBank = 1";
+                        }
+                        else if (safeOrBank == "Kasa")
+                        {
+                            query += " AND T.IsBank = 0";
+                        }
+                    }
+
+                    if (!string.IsNullOrEmpty(safeOrBankSelection))
+                    {
+                        query += @" AND (
+                    (T.IsBank = 1 AND B.BankCode = @safeOrBankSelection) OR
+                    (T.IsBank = 0 AND S.SafeCode = @safeOrBankSelection)
+                )";
+                        parameters.Add(new SqlParameter("@safeOrBankSelection", safeOrBankSelection));
+                    }
+
+                    if (!string.IsNullOrEmpty(type))
+                    {
+                        query += " AND T.Type = @type";
+                        parameters.Add(new SqlParameter("@type", type));
+                    }
+
+                    if (!string.IsNullOrEmpty(currency))
+                    {
+                        query += " AND T.Currency = @currency";
+                        parameters.Add(new SqlParameter("@currency", currency));
+                    }
+
+                    if (!string.IsNullOrEmpty(startDate))
+                    {
+                        query += " AND T.Date >= @startDate";
+                        parameters.Add(new SqlParameter("@startDate", DateTime.Parse(startDate)));
+                    }
+
+                    if (!string.IsNullOrEmpty(endDate))
+                    {
+                        query += " AND T.Date <= @endDate";
+                        parameters.Add(new SqlParameter("@endDate", DateTime.Parse(endDate).AddDays(1).AddSeconds(-1)));
+                    }
+
+                    query += " ORDER BY T.Date DESC";
+
+                    using (SqlCommand cmd = new SqlCommand(query, connection))
+                    {
+                        cmd.Parameters.AddRange(parameters.ToArray());
+
+                        using (SqlDataReader dr = cmd.ExecuteReader())
+                        {
+                            while (dr.Read())
                             {
-                                Id = Convert.ToInt32(dr["Id"]),
-                                Type = Convert.ToString(dr["Type"]),
-                                No = Convert.ToString(dr["No"]),
-                                Description = Convert.ToString(dr["Description"]),
-                                Currency = Convert.ToString(dr["Currency"]),
-                                Amount = Convert.ToString(dr["Amount"]),
-                                SafeOrBank = Convert.ToString(dr["SafeOrBank"]),
-                                Date = Convert.ToDateTime(dr["Date"]),
-                            };
-                            transactions.Add(transaction);
+                                transactions.Add(new Transaction
+                                {
+                                    Id = dr.GetInt32(dr.GetOrdinal("Id")),
+                                    Type = dr.GetString(dr.GetOrdinal("Type")),
+                                    No = dr.GetString(dr.GetOrdinal("No")),
+                                    Description = dr.GetString(dr.GetOrdinal("Description")),
+                                    Currency = dr.GetString(dr.GetOrdinal("Currency")),
+                                    Amount = dr.GetDecimal(dr.GetOrdinal("Amount")).ToString(CultureInfo.InvariantCulture),
+                                    SafeOrBank = dr.GetString(dr.GetOrdinal("SafeOrBank")),
+                                    Date = dr.GetDateTime(dr.GetOrdinal("Date")),
+                                    IsBank = dr.GetBoolean(dr.GetOrdinal("IsBank")),
+                                    SafeOrBankID = dr.GetInt32(dr.GetOrdinal("SafeOrBankID"))
+                                });
+                            }
                         }
                     }
                 }
-                transactions = transactions.OrderBy(x => x.No).ToList();
-                return Json(new { data = transactions }, JsonRequestBehavior.AllowGet);
-            }
 
+                return Json(new
+                {
+                    draw = Request.QueryString["draw"],
+                    recordsTotal = transactions.Count,
+                    recordsFiltered = transactions.Count,
+                    data = transactions
+                }, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(new { error = ex.Message }, JsonRequestBehavior.AllowGet);
+            }
         }
 
         // NOT USING
@@ -183,12 +204,35 @@ namespace Kasabanka.Controllers
         {
             try
             {
-                var amount = float.Parse(transaction.Amount.ToString(),CultureInfo.InvariantCulture);
+                var amount = float.Parse(transaction.Amount.ToString(), CultureInfo.InvariantCulture);
+
+                // SafeOrBank değerinden ID ve IsBank değerlerini çıkar
+                string[] safeOrBankParts = transaction.SafeOrBank.Split(new[] { " - " }, StringSplitOptions.None);
+                string code = safeOrBankParts[0];
+                bool isBank = transaction.Type == "Gelen Havale" || transaction.Type == "Giden Havale";
+
+                int safeOrBankId;
                 using (SqlConnection connection = new SqlConnection(DbHelper.connection))
                 {
-
                     connection.Open();
-                    string query = "INSERT INTO KASABANKA_TRANSACTION (Type, No, Description, Currency, Amount, SafeOrBank, Date) VALUES (@Type, @No, @Description, @Currency, @Amount, @SafeOrBank, @Date)";
+
+                    // ID'yi bul
+                    string idQuery = isBank ?
+                "SELECT ID FROM KASABANKA_BANK WHERE BankCode = @code" :
+                "SELECT ID FROM KASABANKA_SAFE WHERE SafeCode = @code";
+
+                    using (SqlCommand idCmd = new SqlCommand(idQuery, connection))
+                    {
+                        idCmd.Parameters.AddWithValue("@code", code);
+                        safeOrBankId = Convert.ToInt32(idCmd.ExecuteScalar());
+                    }
+
+                    // İşlemi kaydet
+                    string query = @"INSERT INTO KASABANKA_TRANSACTION 
+                (Type, No, Description, Currency, Amount, SafeOrBankID, IsBank, Date) 
+                VALUES 
+                (@Type, @No, @Description, @Currency, @Amount, @SafeOrBankID, @IsBank, @Date)";
+
                     using (SqlCommand cmd = new SqlCommand(query, connection))
                     {
                         cmd.Parameters.AddWithValue("@Type", transaction.Type);
@@ -196,14 +240,14 @@ namespace Kasabanka.Controllers
                         cmd.Parameters.AddWithValue("@Description", transaction.Description);
                         cmd.Parameters.AddWithValue("@Currency", transaction.Currency);
                         cmd.Parameters.AddWithValue("@Amount", amount);
-                        cmd.Parameters.AddWithValue("@SafeOrBank", transaction.SafeOrBank);
+                        cmd.Parameters.AddWithValue("@SafeOrBankID", safeOrBankId);
+                        cmd.Parameters.AddWithValue("@IsBank", isBank);
                         cmd.Parameters.AddWithValue("@Date", transaction.Date);
 
                         cmd.ExecuteNonQuery();
                     }
                 }
                 return Json(new { Success = true, Message = "Yeni işlem oluşturuldu." });
-
             }
             catch (Exception ex)
             {

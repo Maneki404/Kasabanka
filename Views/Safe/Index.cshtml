@@ -99,6 +99,7 @@
     </div>
 </div>
 
+
 @section scripts {
     <script>
         var table;
@@ -108,25 +109,52 @@
         });
 
         function GetAmounts(currency, safeId, callback) {
+            if (!safeId) {
+                console.warn("SafeId is missing for currency:", currency);
+                callback("0,00 " + currencySymbol(currency));
+                return;
+            }
+
+            safeId = parseInt(safeId);
+
+            if (isNaN(safeId)) {
+                console.warn("Invalid safeId:", safeId);
+                callback("0,00 " + currencySymbol(currency));
+                return;
+            }
+
             $.ajax({
                 type: "GET",
-                url: "/Transactions/GetAmountsByCurrency",
-                data: { currency: currency, safeId: safeId, isBank: false },
-                success: function (data) {
-                    var totalAmount = 0;
+                url: "/Transactions/GetAmounts",
+                data: {
+                    currency: currency,
+                    safeOrBankId: safeId,
+                    isBank: false
+                },
+                success: function (response) {
+                    console.log("GetAmounts response for " + currency + ":", response);
 
-                    $.each(data.data, function (index, amount) {
-                        totalAmount += amount;
-                    });
+                    if (!response.success) {
+                        console.error("Server error:", response.error);
+                        callback("0,00 " + currencySymbol(currency));
+                        return;
+                    }
 
-                    totalAmount = totalAmount.toFixed(2) + " " + currencySymbol(currency);
+                    var amount = 0;
+                    if (response.data !== null && response.data !== undefined) {
+                        amount = parseFloat(response.data);
+                    }
 
-                    callback(totalAmount);
+                    var formattedAmount = amount.toLocaleString('en-US', {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }) + " " + currencySymbol(currency);
+
+                    callback(formattedAmount);
                 },
                 error: function (xhr, status, error) {
-                    console.error("Error fetching transactions.");
-                    console.error("Response:", xhr.responseText);
-                    callback("0.00 " + currencySymbol(currency)); // Default to zero in case of an error
+                    console.error("Ajax error for " + currency + ":", error);
+                    callback("0,00 " + currencySymbol(currency));
                 }
             });
         }
@@ -146,57 +174,73 @@
                 ajax: {
                     url: '/Safe/GetSafes',
                     dataSrc: function (json) {
-                        setTimeout(() => {
-                            table.rows().every(function () {
-                                var row = this;
-                                var safeId = row.data().Id;
-                                UpdateCurrencyColumns(row, safeId);
-                            });
-                        }, 1000);
-                        return json.data;
+                        if (json.data && Array.isArray(json.data)) {
+                            setTimeout(function () {
+                                table.rows().every(function () {
+                                    var data = this.data();
+                                    console.log("Row data:", data);
+                                    if (data && data.Id) {
+                                        UpdateCurrencyColumns(this, data.Id);
+                                    }
+                                });
+                            }, 100);
+                        }
+                        return json.data || [];
                     }
                 },
                 language: {
                     url: '//cdn.datatables.net/plug-ins/2.2.2/i18n/tr.json',
                 },
                 columns: [
-                    { data: 'Code' },
-                    { data: 'Name' },
-                    { data: null, defaultContent: "Yükleniyor...", className: "tl-amount" },
-                    { data: null, defaultContent: "Yükleniyor...", className: "usd-amount" },
-                    { data: null, defaultContent: "Yükleniyor...", className: "eur-amount" },
-                    { data: null, defaultContent: "Yükleniyor...", className: "gbp-amount" },
                     {
-                        data: null,
-                        render: function (data, type, row) {
-                            var deleteButton = `<button type="button" title="Kasayı silmek için tıkla." onclick="OpenDeleteSafeModal(${row.Id})" class="m-1 btn btn-sm btn-danger">Sil</button>`;
-                            var updateButton = `<button type="button" title="Kasayı düzenlemek için tıkla." onclick="OpenUpdateSafeModal(${row.Id})" class="m-1 btn btn-sm btn-primary text-light">Düzenle</button>`;
-                            return updateButton + deleteButton;
+                        data: 'Code',
+                        render: function (data) {
+                            return data ? data.trim() : '';
                         }
                     },
-                ]
+                    {
+                        data: 'Name',
+                        render: function (data) {
+                            return data ? data.trim() : '';
+                        }
+                    },
+                    { data: null, defaultContent: "0,00 ₺", className: "tl-amount text-right" },
+                    { data: null, defaultContent: "0,00 $", className: "usd-amount text-right" },
+                    { data: null, defaultContent: "0,00 €", className: "eur-amount text-right" },
+                    { data: null, defaultContent: "0,00 £", className: "gbp-amount text-right" },
+                    {
+                        data: null,
+                        className: "text-center",
+                        render: function (data, type, row) {
+                            return `
+                                                        <button type="button" title="Kasayı düzenlemek için tıkla."
+                                                                onclick="OpenUpdateSafeModal(${row.Id})"
+                                                                class="m-1 btn btn-sm btn-primary text-light">Düzenle</button>
+                                                        <button type="button" title="Kasayı silmek için tıkla."
+                                                                onclick="OpenDeleteSafeModal(${row.Id})"
+                                                                class="m-1 btn btn-sm btn-danger">Sil</button>
+                                                    `;
+                        }
+                    }
+                ],
+                order: [[0, 'asc']],
+                responsive: true
             });
         }
 
         function UpdateCurrencyColumns(row, safeId) {
-            if (!row) {
-                console.warn("Row not found for safeId:", safeId);
+            if (!row || !safeId) {
+                console.warn("Row or safeId not found:", safeId);
                 return;
             }
 
             var rowNode = $(row.node());
 
-            GetAmounts("TL", safeId, function (amount) {
-                rowNode.find(".tl-amount").html(amount);
-            });
-            GetAmounts("USD", safeId, function (amount) {
-                rowNode.find(".usd-amount").html(amount);
-            });
-            GetAmounts("EUR", safeId, function (amount) {
-                rowNode.find(".eur-amount").html(amount);
-            });
-            GetAmounts("GBP", safeId, function (amount) {
-                rowNode.find(".gbp-amount").html(amount);
+            ["TL", "USD", "EUR", "GBP"].forEach(function (currency) {
+                var cellClass = currency.toLowerCase() + "-amount";
+                GetAmounts(currency, safeId, function (amount) {
+                    rowNode.find("." + cellClass).html(amount);
+                });
             });
         }
 
@@ -232,8 +276,8 @@
                             title: "Başarılı!",
                             text: data.Message,
                             icon: "success"
-                        }).then(() => {
-                            table.ajax.reload();
+                        }).then((result) => {
+                            table.ajax.reload(null, false);
                         });
                     }
                     else {
@@ -311,8 +355,8 @@
                             title: "Başarılı!",
                             text: data.Message,
                             icon: "success"
-                        }).then(() => {
-                            table.ajax.reload();
+                        }).then((result) => {
+                            table.ajax.reload(null, false);
                         });
                     }
                     else {
@@ -382,8 +426,8 @@
                             title: "Başarılı!",
                             text: data.Message,
                             icon: "success"
-                        }).then(() => {
-                            table.ajax.reload();
+                        }).then((result) => {
+                            table.ajax.reload(null, false);
                         });
                     }
                     else {

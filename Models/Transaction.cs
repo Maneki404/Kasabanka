@@ -22,6 +22,10 @@ namespace Kasabanka.Models
         public String SafeOrBank { get; set; }
         [Required]
         public DateTime Date { get; set; }
+        [Required]
+        public bool IsBank { get; set; }
+        [Required]
+        public int SafeOrBankID { get; set; }
 
     }
 }
