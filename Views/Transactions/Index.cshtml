@@ -170,25 +170,86 @@
             $("#filterSafeOrBank").change(function () {
                 var selectedValue = $(this).val();
                 var secondDropdown = $("#filterSafeOrBankSelection");
+                var typeDropdown = $("#filterType"); // Get the transaction type dropdown
                 var label = $("#filterSafeOrBankLabel");
 
                 // Clear previous options
                 secondDropdown.empty();
                 secondDropdown.append('<option value="">Tümü</option>');
 
-                // Update label and fetch data accordingly
+                // Clear and update transaction type dropdown
+                typeDropdown.empty();
+                typeDropdown.append('<option value="">Tümü</option>');
+
                 if (selectedValue === "Banka") {
                     label.text("Banka Seçiniz");
                     fetchBanks();
+                    // Add only bank-related transaction types
+                    typeDropdown.append(`
+                            <option value="Gelen Havale">Gelen Havale</option>
+                            <option value="Giden Havale">Giden Havale</option>
+                        `);
                 } else if (selectedValue === "Kasa") {
                     label.text("Kasa Seçiniz");
                     fetchSafes();
+                    // Add only safe-related transaction types
+                    typeDropdown.append(`
+                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+                            <option value="Nakit Ödeme">Nakit Ödeme</option>
+                        `);
                 } else {
+                    // If no option is selected (Tümü), show both banks and safes
                     label.text("Banka / Kasa Seçiniz");
+                    fetchBothBanksAndSafes();
+                    // Add all transaction types
+                    typeDropdown.append(`
+                            <option value="Gelen Havale">Gelen Havale</option>
+                            <option value="Giden Havale">Giden Havale</option>
+                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+                            <option value="Nakit Ödeme">Nakit Ödeme</option>
+                        `);
                 }
             });
+
+            // Trigger the change event initially to load both banks and safes
+            $("#filterSafeOrBank").trigger('change');
         });
 
+
+        function fetchBothBanksAndSafes() {
+            Promise.all([
+                $.ajax({
+                    type: "GET",
+                    url: "/Bank/GetBanks"
+                }),
+                $.ajax({
+                    type: "GET",
+                    url: "/Safe/GetSafes"
+                })
+            ]).then(([banksResponse, safesResponse]) => {
+                var secondDropdown = $("#filterSafeOrBankSelection");
+
+                // Add banks
+                if (banksResponse.data && banksResponse.data.length > 0) {
+                    secondDropdown.append('<optgroup label="Bankalar">');
+                    banksResponse.data.forEach(bank => {
+                        secondDropdown.append(`<option value="${bank.Code}">${bank.Code} - ${bank.Name}</option>`);
+                    });
+                    secondDropdown.append('</optgroup>');
+                }
+
+                // Add safes
+                if (safesResponse.data && safesResponse.data.length > 0) {
+                    secondDropdown.append('<optgroup label="Kasalar">');
+                    safesResponse.data.forEach(safe => {
+                        secondDropdown.append(`<option value="${safe.Code}">${safe.Code} - ${safe.Name}</option>`);
+                    });
+                    secondDropdown.append('</optgroup>');
+                }
+            }).catch(error => {
+                console.error("Error fetching banks and safes:", error);
+            });
+        }
 
         function fetchBanks() {
             $.ajax({
@@ -197,7 +258,7 @@
                 success: function (data) {
                     var secondDropdown = $("#filterSafeOrBankSelection");
                     $.each(data.data, function (index, bank) {
-                        secondDropdown.append('<option value="' + bank.Code + '">' + bank.Code + " - " + bank.Name + '</option>');
+                        secondDropdown.append(`<option value="${bank.Code}">${bank.Code} - ${bank.Name}</option>`);
                     });
                 },
                 error: function () {
@@ -213,7 +274,7 @@
                 success: function (data) {
                     var secondDropdown = $("#filterSafeOrBankSelection");
                     $.each(data.data, function (index, safe) {
-                        secondDropdown.append('<option value="' + safe.Code + '">' + safe.Code + " - " + safe.Name + '</option>');
+                        secondDropdown.append(`<option value="${safe.Code}">${safe.Code} - ${safe.Name}</option>`);
                     });
                 },
                 error: function () {
