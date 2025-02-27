@@ -59,12 +59,12 @@
 
     <div class="col-md-2">
         <label for="startDate">Başlangıç Tarihi</label>
-        <input type="date" id="startDate" class="form-control">
+        <input type="date" id="startDate" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")">
     </div>
 
     <div class="col-md-2">
         <label for="endDate">Bitiş Tarihi</label>
-        <input type="date" id="endDate" class="form-control">
+        <input type="date" id="endDate" class="form-control" value="@DateTime.Now.AddDays(1).ToString("yyyy-MM-dd")">
     </div>
 
     <div class="col-md-1">
@@ -186,28 +186,28 @@
                     fetchBanks();
                     // Add only bank-related transaction types
                     typeDropdown.append(`
-                                                                            <option value="Gelen Havale">Gelen Havale</option>
-                                                                            <option value="Giden Havale">Giden Havale</option>
-                                                                        `);
+                                                                                                                                        <option value="Gelen Havale">Gelen Havale</option>
+                                                                                                                                        <option value="Giden Havale">Giden Havale</option>
+                                                                                                                                    `);
                 } else if (selectedValue === "Kasa") {
                     label.text("Kasa Seçiniz");
                     fetchSafes();
                     // Add only safe-related transaction types
                     typeDropdown.append(`
-                                                                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
-                                                                            <option value="Nakit Ödeme">Nakit Ödeme</option>
-                                                                        `);
+                                                                                                                                        <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+                                                                                                                                        <option value="Nakit Ödeme">Nakit Ödeme</option>
+                                                                                                                                    `);
                 } else {
                     // If no option is selected (Tümü), show both banks and safes
                     label.text("Banka / Kasa Seçiniz");
                     fetchBothBanksAndSafes();
                     // Add all transaction types
                     typeDropdown.append(`
-                                                                            <option value="Gelen Havale">Gelen Havale</option>
-                                                                            <option value="Giden Havale">Giden Havale</option>
-                                                                            <option value="Nakit Tahsilat">Nakit Tahsilat</option>
-                                                                            <option value="Nakit Ödeme">Nakit Ödeme</option>
-                                                                        `);
+                                                                                                                                        <option value="Gelen Havale">Gelen Havale</option>
+                                                                                                                                        <option value="Giden Havale">Giden Havale</option>
+                                                                                                                                        <option value="Nakit Tahsilat">Nakit Tahsilat</option>
+                                                                                                                                        <option value="Nakit Ödeme">Nakit Ödeme</option>
+                                                                                                                                    `);
                 }
             });
 
