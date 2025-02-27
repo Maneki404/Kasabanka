@@ -165,39 +165,107 @@ namespace Kasabanka.Controllers
             }
         }
 
-        // NOT USING
-        public JsonResult GetTransactionById(String id)
+        public JsonResult GetTransactionById(int id)
         {
-            Transaction transaction = new Transaction();
-
-            using (SqlConnection connection = new SqlConnection(DbHelper.connection))
+            try
             {
-                connection.Open();
-                using (SqlCommand bringTransaction = new SqlCommand("SELECT t.Id, t.Type, t.No, t.Description, t.Currency, t.Amount, t.SafeOrBank, t.Date FROM KASABANKA_TRANSACTION t WHERE ID = @id", connection))
+                Transaction transaction = null;
+
+                using (SqlConnection connection = new SqlConnection(DbHelper.connection))
                 {
-                    bringTransaction.Parameters.AddWithValue("@id", id);
-                    using (SqlDataReader dr = bringTransaction.ExecuteReader())
+                    connection.Open();
+                    string query = @"
+                SELECT 
+                    T.Id,
+                    T.Type,
+                    T.No,
+                    T.Description,
+                    T.Currency,
+                    T.Amount,
+                    T.Date,
+                    T.IsBank,
+                    T.SafeOrBankID,
+                    CASE 
+                        WHEN T.IsBank = 1 THEN B.BankCode + ' - ' + B.BankName
+                        ELSE S.SafeCode + ' - ' + S.SafeName
+                    END as SafeOrBank
+                FROM KASABANKA_TRANSACTION T
+                LEFT JOIN KASABANKA_BANK B ON T.SafeOrBankID = B.ID AND T.IsBank = 1
+                LEFT JOIN KASABANKA_SAFE S ON T.SafeOrBankID = S.ID AND T.IsBank = 0
+                WHERE T.Id = @id";
+
+                    using (SqlCommand cmd = new SqlCommand(query, connection))
                     {
-                        while (dr.Read())
+                        cmd.Parameters.AddWithValue("@id", id);
+
+                        using (SqlDataReader dr = cmd.ExecuteReader())
                         {
-                            transaction = new Transaction()
+                            if (dr.Read())
                             {
-                                Id = Convert.ToInt32(dr["Id"]),
-                                Type = Convert.ToString(dr["Type"]),
-                                No = Convert.ToString(dr["No"]),
-                                Description = Convert.ToString(dr["Description"]),
-                                Currency = Convert.ToString(dr["Currency"]),
-                                Amount = Convert.ToString(dr["Amount"]),
-                                SafeOrBank = Convert.ToString(dr["SafeOrBank"]),
-                                Date = Convert.ToDateTime(dr["Date"]),
+                                transaction = new Transaction
+                                {
+                                    Id = dr.GetInt32(dr.GetOrdinal("Id")),
+                                    Type = dr.GetString(dr.GetOrdinal("Type")),
+                                    No = dr.GetString(dr.GetOrdinal("No")),
+                                    Description = dr.GetString(dr.GetOrdinal("Description")),
+                                    Currency = dr.GetString(dr.GetOrdinal("Currency")),
+                                    Amount = dr.GetDecimal(dr.GetOrdinal("Amount")).ToString(CultureInfo.InvariantCulture),
+                                    SafeOrBank = dr.GetString(dr.GetOrdinal("SafeOrBank")),
+                                    Date = dr.GetDateTime(dr.GetOrdinal("Date")),
+                                    IsBank = dr.GetBoolean(dr.GetOrdinal("IsBank")),
+                                    SafeOrBankID = dr.GetInt32(dr.GetOrdinal("SafeOrBankID"))
+                                };
                             }
-                            ;
+                        }
+                    }
+                }
+
+                if (transaction != null)
+                {
+                    return Json(new { Success = true, Data = transaction }, JsonRequestBehavior.AllowGet);
+                }
+                else
+                {
+                    return Json(new { Success = false, Message = "İşlem bulunamadı." }, JsonRequestBehavior.AllowGet);
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json(new { Success = false, Message = $"Hata oluştu: {ex.Message}" }, JsonRequestBehavior.AllowGet);
+            }
+        }
+        public JsonResult DeleteTransaction(int? id)
+        {
+            try
+            {
+                if (!id.HasValue)
+                {
+                    return Json(new { Success = false, Message = "Geçersiz işlem ID'si." });
+                }
+
+                using (SqlConnection connection = new SqlConnection(DbHelper.connection))
+                {
+                    connection.Open();
+                    using (SqlCommand cmd = new SqlCommand("DELETE FROM KASABANKA_TRANSACTION WHERE Id = @id", connection))
+                    {
+                        cmd.Parameters.AddWithValue("@id", id.Value);
+                        int affected = cmd.ExecuteNonQuery();
+
+                        if (affected > 0)
+                        {
+                            return Json(new { Success = true, Message = "İşlem kaydı silindi." });
+                        }
+                        else
+                        {
+                            return Json(new { Success = false, Message = "Silinecek işlem bulunamadı." });
                         }
                     }
                 }
             }
-
-            return Json(transaction, JsonRequestBehavior.AllowGet);
+            catch (Exception ex)
+            {
+                return Json(new { Success = false, Message = $"Hata oluştu: {ex.Message}" });
+            }
         }
 
         public JsonResult CreateTransaction(Transaction transaction)
